@@ -11,7 +11,7 @@ chars = {
     "德育月": {"hp": 250, "atk": 0, "skill": "魔王降临", "buff": "规则修改", "ult": "终极处刑", "is_boss": True}
 }
 
-st.title("🃏 隆中华：智障抽卡大乱斗 (SP 限制强化版)")
+st.title(" 隆中华：大乱斗 ")
 
 if 'started' not in st.session_state:
     st.session_state.update({'started': False, 'log': []})
