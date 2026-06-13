@@ -11,7 +11,7 @@ chars = {
     "德育月": {"hp": 250, "atk": 0, "skill": "魔王降临", "buff": "规则修改", "ult": "终极处刑", "is_boss": True}
 }
 
-st.title(" 隆中华：大乱斗")
+st.title(" 隆中华：大乱斗 ")
 
 if 'started' not in st.session_state:
     st.session_state.update({'started': False, 'log': []})
@@ -32,9 +32,7 @@ if not st.session_state.started:
         })
         st.rerun()
 else:
-    # 强制补回状态，防止崩坏
     if 'max_sp' not in st.session_state: st.session_state.max_sp = 100
-    
     p_data = chars[st.session_state.p]
     is_p_boss = p_data.get('is_boss', False)
     
@@ -50,25 +48,25 @@ else:
         action = st.radio("选择指令:", options)
         
         if st.button("执行回合"):
-            # 伤害逻辑：BOSS 专属高伤，普通角色带暴击
-            is_crit = random.random() < 0.2
+            # 修正伤害：普通角色普攻仅 15，BOSS 不会有普攻
             if is_p_boss:
                 dmg = 35 if "技能" in action else (45 if "强化" in action else 91)
             else:
-                base_dmg = p_data['atk'] + (10 if "技能" in action else (20 if "强化" in action else 40))
+                is_crit = random.random() < 0.2
+                base_dmg = 15 if "普通" in action else (p_data['atk'] + 10)
                 dmg = base_dmg * 2 if is_crit else base_dmg
             
             st.session_state.o_hp = max(0, st.session_state.o_hp - dmg)
             st.session_state.sp = min(st.session_state.max_sp, st.session_state.sp + 10)
-            st.session_state.log.append(f"第{st.session_state.turn}回合: 你使用{action}，{'【暴击！】' if is_crit else ''}造成 {dmg} 点伤害。")
+            st.session_state.log.append(f"造成了 {dmg} 点伤害。")
             
             if st.session_state.o_hp <= 0:
                 st.session_state.log.append("🎉 对手当场暴毙！"); st.balloons()
             else:
-                taunts = ["废柴！", "就这？", "给我笑死！", "你的智商掉地上了！"]
-                st.session_state.log.append(f"对手嘲讽道：'{random.choice(taunts)}'")
-                st.session_state.p_hp -= 20
-                st.session_state.turn += 1
+                # 对手反击固定扣 15，不会再秒人了
+                st.session_state.p_hp -= 15
+                st.session_state.log.append("对手反击造成 15 点伤害。")
+            st.session_state.turn += 1
             st.rerun()
     else:
         if st.button("再来一局"): st.session_state.started = False; st.rerun()
