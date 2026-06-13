@@ -1,52 +1,63 @@
 import streamlit as st
 import random
 
-# 角色系统：SP系统平衡版
+# 角色系统：完整技能与描述
 chars = {
-    "Shaw Zer": {"hp": 150, "atk": 15, "desc": "🐰 傲娇男娘", "skill": "【撒娇】：回 40HP (消耗 25SP)", "buff": "【嘴硬】：下回合防御加倍 (消耗 67SP)"},
-    "Zhi Wei": {"hp": 130, "atk": 25, "desc": "👁️ 雷达官", "skill": "【扫描】：对方扣 30HP (消耗 25SP)", "buff": "【预判】：下回合攻击翻倍 (消耗 67SP)"},
-    "Qi Yu": {"hp": 200, "atk": 12, "desc": "🍹 冰水仙人", "skill": "【Teh O Ais】：回 50HP (消耗 25SP)", "buff": "【静止】：减少对方 50SP (消耗 67SP)"},
-    "Jun Zi": {"hp": 110, "atk": 35, "desc": "🐶 哈士奇", "skill": "【撕咬】：造成 40HP 伤害 (消耗 25SP)", "buff": "【狂暴】：全属性大幅提升 (消耗 67SP)"},
-    "Keith Goh": {"hp": 170, "atk": 20, "desc": "👴 暴走老御宅", "skill": "【动漫吐槽】：造成 35HP 伤害 (消耗 25SP)", "buff": "【结界】：全员无效化 1 回合 (消耗 67SP)"}
+    "Shaw Zer": {"hp": 150, "atk": 15, "skill_name": "撒娇求带", "ult_name": "极限嘴硬"},
+    "Zhi Wei": {"hp": 130, "atk": 25, "skill_name": "雷达扫描", "ult_name": "学弟捕捉"},
+    "Qi Yu": {"hp": 200, "atk": 12, "skill_name": "Teh O Ais补给", "ult_name": "虚无入定"},
+    "Jun Zi": {"hp": 110, "atk": 35, "skill_name": "哈士奇撕咬", "ult_name": "狂暴觉醒"},
+    "Keith Goh": {"hp": 170, "atk": 20, "skill_name": "动漫吐槽", "ult_name": "二次元审判"}
 }
 
-st.title("⚔️ 隆中华：SP 策略巅峰赛")
+st.title("⚔️ 隆中华：嘴硬争霸赛")
 
 if 'g' not in st.session_state:
     st.session_state.g = {'started': False}
 
 if not st.session_state.g['started']:
-    p = st.selectbox("选你的角色:", list(chars.keys()))
-    if st.button("开始"):
-        st.session_state.g = {'started': True, 'p': p, 'o': random.choice([c for c in chars if c != p]),
-                              'p_hp': chars[p]['hp'], 'o_hp': chars[random.choice([c for c in chars if c != p])]['hp'],
-                              'p_sp': 40, 'log': ["开始！"]}
+    p = st.selectbox("选择你的角色:", list(chars.keys()))
+    if st.button("开始挑战"):
+        o = random.choice([c for c in chars if c != p])
+        st.session_state.g = {'started': True, 'p': p, 'o': o, 'p_hp': chars[p]['hp'], 
+                              'o_hp': chars[o]['hp'], 'p_sp': 40, 'turn': 1, 'log': ["战斗开始！"]}
         st.rerun()
 else:
-    p, o = st.session_state.g['p'], st.session_state.g['o']
-    st.metric("你的 SP", st.session_state.g['p_sp'], delta=10) # 每回合回10
-    c1, c2 = st.columns(2)
-    c1.metric("你的 HP", st.session_state.g['p_hp'])
-    c2.metric("对手 HP", st.session_state.g['o_hp'])
+    g = st.session_state.g
+    st.subheader(f"第 {g['turn']} 回合 | 你 vs {g['o']}")
+    
+    col1, col2 = st.columns(2)
+    col1.metric("你的 HP", g['p_hp'])
+    col2.metric("对手 HP", g['o_hp'])
+    st.progress(g['p_sp']/100, text=f"SP点数: {g['p_sp']}/100")
 
-    action = st.radio("指令 (上限100SP):", ["普通攻击 (5SP)", "技能 (25SP)", "强化 (67SP)", "大招 (78SP)"])
-    if st.button("出招"):
-        sp_costs = {"普通攻击 (5SP)": 5, "技能 (25SP)": 25, "强化 (67SP)": 67, "大招 (78SP)": 78}
-        cost = sp_costs[action]
+    # 指令区
+    action = st.radio("选择战术:", [f"普通攻击 (5SP)", f"{chars[g['p']]['skill_name']} (25SP)", f"大招: {chars[g['p']]['ult_name']} (78SP)"])
+    
+    if st.button("确认出招"):
+        costs = {"普通攻击 (5SP)": 5, chars[g['p']]['skill_name']: 25, chars[g['p']]['ult_name']: 78}
+        # 这里动态匹配指令
+        cost = 5 if "普通" in action else (25 if "技能" not in action else 78)
         
-        if st.session_state.g['p_sp'] < cost:
-            st.error("SP不足！")
+        if g['p_sp'] < cost:
+            st.error("SP不足，先普通攻击积攒点数吧！")
         else:
-            st.session_state.g['p_sp'] = min(100, st.session_state.g['p_sp'] - cost + 10) # 扣费后加10点回复
-            
-            # 伤害逻辑
-            if "普通" in action: st.session_state.g['o_hp'] -= chars[p]['atk']
-            elif "技能" in action: st.session_state.g['o_hp'] -= 30
-            elif "强化" in action: st.session_state.g['p_hp'] += 20 # 强化加buff
-            elif "大招" in action: st.session_state.g['o_hp'] -= 60
+            g['p_sp'] = min(100, g['p_sp'] - cost + 10)
+            # 战斗结算
+            dmg = chars[g['p']]['atk'] + (20 if "大招" in action else 0)
+            g['o_hp'] -= dmg
+            g['log'].append(f"第{g['turn']}回合: 你使用了 {action}，造成 {dmg} 点伤害！")
             
             # 对手行动
-            st.session_state.g['p_hp'] -= 15
+            o_dmg = chars[g['o']]['atk']
+            g['p_hp'] -= o_dmg
+            g['log'].append(f"对手 {g['o']} 反击，造成 {o_dmg} 点伤害！")
+            g['turn'] += 1
             st.rerun()
 
-    if st.session_state.g['p_hp'] <= 0: st.error("你输了！"); st.session_state.g['started'] = False
+    st.write("---")
+    st.write("### 战斗日志")
+    for l in reversed(g['log'][-3:]): st.write(l)
+    
+    if g['p_hp'] <= 0: st.error("你破防了，明天上课被罚站！"); g['started'] = False
+    elif g['o_hp'] <= 0: st.success("你赢了，全班请你喝 Teh O Ais！"); g['started'] = False
