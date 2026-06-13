@@ -10,7 +10,7 @@ chars = {
     "Keith Goh": {"hp": 170, "atk": 20, "skill": "动漫吐槽", "buff": "二次元结界", "ult": "老宅男的审判"}
 }
 
-st.title("🃏 隆中华：智障抽卡大乱斗 v5.2 (严谨版)")
+st.title(" 隆中华：大乱斗 ")
 
 if 'started' not in st.session_state:
     st.session_state.update({'started': False, 'log': []})
