@@ -10,7 +10,7 @@ chars = {
     "Keith Goh": {"hp": 170, "atk": 20, "skill": "动漫吐槽", "buff": "二次元结界", "ult": "老宅男的审判"}
 }
 
-st.title(" 隆中华：大乱斗 ")
+st.title(" 隆中华：大乱斗")
 
 if 'started' not in st.session_state:
     st.session_state.update({'started': False, 'log': []})
@@ -20,16 +20,15 @@ if not st.session_state.started:
         pool = list(chars.keys())
         p, o = random.sample(pool, 2)
         st.session_state.update({'started': True, 'p': p, 'o': o, 'p_hp': chars[p]['hp'], 
-                                 'o_hp': chars[o]['hp'], 'sp': 40, 'turn': 1, 'log': [f"你: {p} vs 对手: {o}！"]})
+                                 'o_hp': chars[o]['hp'], 'sp': 40, 'turn': 1, 'log': [f"你: {p} vs 对手: {o}！决斗开始！"]})
         st.rerun()
 else:
     st.subheader(f"第 {st.session_state.turn} 回合 | {st.session_state.p} vs {st.session_state.o}")
     col1, col2 = st.columns(2)
     col1.metric("你的 HP", max(0, st.session_state.p_hp))
     col2.metric("对手 HP", max(0, st.session_state.o_hp))
-    st.progress(st.session_state.sp/100, text=f"SP: {st.session_state.sp}")
+    st.progress(st.session_state.sp/100, text=f"当前 SP: {st.session_state.sp}")
 
-    # 关键修改：只有在双方都活着时才显示操作指令
     if st.session_state.p_hp > 0 and st.session_state.o_hp > 0:
         action = st.radio("选择指令:", ["普通攻击 (5SP)", f"技能: {chars[st.session_state.p]['skill']} (25SP)", 
                                       f"强化: {chars[st.session_state.p]['buff']} (67SP)", f"大招: {chars[st.session_state.p]['ult']} (78SP)"])
@@ -41,26 +40,31 @@ else:
             if st.session_state.sp < cost:
                 st.error("SP 不足！")
             else:
-                # 攻击结算
+                # 暴击机制
                 dmg = (chars[st.session_state.p]['atk'] + (20 if "强化" in action else (60 if "大招" in action else 0))) * (2 if random.random() < 0.2 else 1)
                 st.session_state.o_hp = max(0, st.session_state.o_hp - dmg)
                 st.session_state.sp = min(100, st.session_state.sp - cost + 10) 
                 st.session_state.log.append(f"你造成了 {dmg} 点伤害。")
                 
-                if st.session_state.o_hp > 0:
+                # 胜利判定与气球特效
+                if st.session_state.o_hp <= 0:
+                    st.session_state.log.append("🎉 对手当场暴毙！")
+                    st.balloons()
+                else:
+                    # 脑抽与嘲讽反击
                     if random.random() < 0.1:
                         st.session_state.p_hp = max(0, st.session_state.p_hp - 15)
                         st.session_state.log.append("🚨 脑抽了！损失 15 HP！")
                     if st.session_state.p_hp > 0:
+                        taunts = ["废柴！", "就这？", "给我笑死！", "你的智商掉地上了！"]
                         o_char = chars[st.session_state.o]
                         m_name, m_dmg = random.choice([("普通攻击", o_char['atk']), (o_char['skill'], o_char['atk']+10), (o_char['ult'], o_char['atk']+40)])
                         st.session_state.p_hp = max(0, st.session_state.p_hp - m_dmg)
-                        st.session_state.log.append(f"对手使出「{m_name}」造成 {m_dmg} 点伤害。")
+                        st.session_state.log.append(f"对手嘲讽道：'{random.choice(taunts)}'，使出「{m_name}」造成 {m_dmg} 点伤害。")
                 
                 st.session_state.turn += 1
                 st.rerun()
     else:
-        # 只要有一方挂了，显示胜负，不显示按钮
         if st.session_state.p_hp <= 0: st.error("你输了！智商归零！")
         else: st.success("🎉 你赢了！对手智商归零！")
         if st.button("再来一局"): st.session_state.started = False; st.rerun()
