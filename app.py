@@ -1,72 +1,52 @@
 import streamlit as st
 import random
 
-# 角色定义：加入特殊技能
-characters = {
-    "Shaw Zer": {"hp": 150, "atk": 15, "skill": "【撒娇求带】：回复20点HP"},
-    "Zhi Wei": {"hp": 130, "atk": 25, "skill": "【学弟雷达】：无视防御直接扣20点"},
-    "Qi Yu": {"hp": 200, "atk": 10, "skill": "【Teh O Ais 补给】：回复50点HP"},
-    "Jun Zi": {"hp": 120, "atk": 30, "skill": "【哈士奇狂暴】：伤害翻倍"},
-    "Keith Goh": {"hp": 180, "atk": 20, "skill": "【中二审判】：对敌方造成30点伤害"}
+# 角色系统：SP系统平衡版
+chars = {
+    "Shaw Zer": {"hp": 150, "atk": 15, "desc": "🐰 傲娇男娘", "skill": "【撒娇】：回 40HP (消耗 25SP)", "buff": "【嘴硬】：下回合防御加倍 (消耗 67SP)"},
+    "Zhi Wei": {"hp": 130, "atk": 25, "desc": "👁️ 雷达官", "skill": "【扫描】：对方扣 30HP (消耗 25SP)", "buff": "【预判】：下回合攻击翻倍 (消耗 67SP)"},
+    "Qi Yu": {"hp": 200, "atk": 12, "desc": "🍹 冰水仙人", "skill": "【Teh O Ais】：回 50HP (消耗 25SP)", "buff": "【静止】：减少对方 50SP (消耗 67SP)"},
+    "Jun Zi": {"hp": 110, "atk": 35, "desc": "🐶 哈士奇", "skill": "【撕咬】：造成 40HP 伤害 (消耗 25SP)", "buff": "【狂暴】：全属性大幅提升 (消耗 67SP)"},
+    "Keith Goh": {"hp": 170, "atk": 20, "desc": "👴 暴走老御宅", "skill": "【动漫吐槽】：造成 35HP 伤害 (消耗 25SP)", "buff": "【结界】：全员无效化 1 回合 (消耗 67SP)"}
 }
 
-st.title("🔥 隆中华：巅峰大乱斗 v2.0")
+st.title("⚔️ 隆中华：SP 策略巅峰赛")
 
-if 'game' not in st.session_state:
-    st.session_state.game = {'started': False, 'turn': 0}
+if 'g' not in st.session_state:
+    st.session_state.g = {'started': False}
 
-if not st.session_state.game['started']:
-    player = st.selectbox("选出你的大将:", list(characters.keys()))
-    if st.button("进入战斗"):
-        st.session_state.game = {
-            'started': True, 'p': player, 'o': random.choice([c for c in characters if c != player]),
-            'p_hp': characters[player]['hp'], 'o_hp': characters[st.session_state.game.get('o', 'Qi Yu')]['hp'],
-            'log': ["战斗开始！"]
-        }
+if not st.session_state.g['started']:
+    p = st.selectbox("选你的角色:", list(chars.keys()))
+    if st.button("开始"):
+        st.session_state.g = {'started': True, 'p': p, 'o': random.choice([c for c in chars if c != p]),
+                              'p_hp': chars[p]['hp'], 'o_hp': chars[random.choice([c for c in chars if c != p])]['hp'],
+                              'p_sp': 40, 'log': ["开始！"]}
         st.rerun()
 else:
-    # 战斗逻辑
-    st.write(f"### 正在对战: {st.session_state.game['p']} vs {st.session_state.game['o']}")
-    col1, col2 = st.columns(2)
-    col1.metric("你的 HP", st.session_state.game['p_hp'])
-    col2.metric("对手 HP", st.session_state.game['o_hp'])
+    p, o = st.session_state.g['p'], st.session_state.g['o']
+    st.metric("你的 SP", st.session_state.g['p_sp'], delta=10) # 每回合回10
+    c1, c2 = st.columns(2)
+    c1.metric("你的 HP", st.session_state.g['p_hp'])
+    c2.metric("对手 HP", st.session_state.g['o_hp'])
 
-    # 动作选择
-    action = st.radio("选择你的回合操作:", ["普通嘴硬攻击", "使用必杀技", "去 Mamak 档加冰"])
-    
-    if st.button("确认出招"):
-        log = st.session_state.game['log']
-        if action == "普通嘴硬攻击":
-            dmg = characters[st.session_state.game['p']]['atk'] + random.randint(0, 10)
-            st.session_state.game['o_hp'] -= dmg
-            log.append(f"你造成了 {dmg} 点嘴硬伤害！")
-        elif action == "使用必杀技":
-            if "补给" in characters[st.session_state.game['p']]['skill']:
-                st.session_state.game['p_hp'] += 50
-                log.append("你喝了 Teh O Ais，HP 回复 50！")
-            else:
-                st.session_state.game['o_hp'] -= 30
-                log.append("必杀技命中！对手扣 30 HP！")
+    action = st.radio("指令 (上限100SP):", ["普通攻击 (5SP)", "技能 (25SP)", "强化 (67SP)", "大招 (78SP)"])
+    if st.button("出招"):
+        sp_costs = {"普通攻击 (5SP)": 5, "技能 (25SP)": 25, "强化 (67SP)": 67, "大招 (78SP)": 78}
+        cost = sp_costs[action]
+        
+        if st.session_state.g['p_sp'] < cost:
+            st.error("SP不足！")
         else:
-            st.session_state.game['p_hp'] += 10
-            log.append("你喝了杯冰水，稍微冷静了一下，回复 10 HP。")
+            st.session_state.g['p_sp'] = min(100, st.session_state.g['p_sp'] - cost + 10) # 扣费后加10点回复
+            
+            # 伤害逻辑
+            if "普通" in action: st.session_state.g['o_hp'] -= chars[p]['atk']
+            elif "技能" in action: st.session_state.g['o_hp'] -= 30
+            elif "强化" in action: st.session_state.g['p_hp'] += 20 # 强化加buff
+            elif "大招" in action: st.session_state.g['o_hp'] -= 60
+            
+            # 对手行动
+            st.session_state.g['p_hp'] -= 15
+            st.rerun()
 
-        # 对手反击
-        if st.session_state.game['o_hp'] > 0:
-            o_dmg = characters[st.session_state.game['o']]['atk'] + random.randint(0, 5)
-            st.session_state.game['p_hp'] -= o_dmg
-            log.append(f"对手反击了，对你造成了 {o_dmg} 点伤害！")
-
-        # 胜负判定
-        if st.session_state.game['p_hp'] <= 0:
-            st.error("你被对面搞破防了！")
-            st.session_state.game['started'] = False
-        elif st.session_state.game['o_hp'] <= 0:
-            st.success("你赢得了这场嘴硬巅峰之战！")
-            st.session_state.game['started'] = False
-        st.rerun()
-
-    st.write("---")
-    st.write("### 战斗日志:")
-    for entry in reversed(st.session_state.game['log'][-5:]):
-        st.write(f"- {entry}")
+    if st.session_state.g['p_hp'] <= 0: st.error("你输了！"); st.session_state.g['started'] = False
