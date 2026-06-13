@@ -11,6 +11,9 @@ chars = {
     "德育月": {"hp": 250, "atk": 0, "skill": "魔王降临", "buff": "规则修改", "ult": "终极处刑", "is_boss": True}
 }
 
+# 嘲讽库
+taunts = ["笑死，你会玩吗？", "隆中华没人了吗？", "太弱了，换个姿势再来！", "这是你最强的招？", "就这？"]
+
 st.title(" 隆中华：大乱斗 ")
 
 if 'started' not in st.session_state:
@@ -42,37 +45,35 @@ else:
     st.progress(st.session_state.sp / st.session_state.max_sp, text=f"SP: {st.session_state.sp}/{st.session_state.max_sp}")
 
     if st.session_state.p_hp > 0 and st.session_state.o_hp > 0:
-        # 定义动作消耗表
         costs = {"普通攻击": 5, "技能": 25, "强化": 67, "大招": 78}
-        
         options = [f"技能: {p_data['skill']} (25SP)", f"强化: {p_data['buff']} (67SP)", f"大招: {p_data['ult']} (78SP)"]
         if not is_p_boss: options.insert(0, "普通攻击 (5SP)")
         action = st.radio("选择指令:", options)
         
         if st.button("执行回合"):
-            # 【SP 限制判定】
-            chosen_cost = 0
-            if "普通" in action: chosen_cost = costs["普通攻击"]
-            elif "技能" in action: chosen_cost = costs["技能"]
-            elif "强化" in action: chosen_cost = costs["强化"]
-            elif "大招" in action: chosen_cost = costs["大招"]
+            chosen_cost = 5 if "普通" in action else (25 if "技能" in action else (67 if "强化" in action else 78))
             
             if st.session_state.sp < chosen_cost:
-                st.error(f"⚠️ SP 不足！该指令需要 {chosen_cost} SP，你当前只有 {st.session_state.sp} SP。")
+                st.error(f"⚠️ SP 不足！需要 {chosen_cost} SP。")
             else:
-                # 消耗 SP 并计算伤害
-                st.session_state.sp -= chosen_cost
-                
+                # 触发暴击 (20% 概率)
+                is_crit = random.random() < 0.2
+                # 计算伤害
                 if is_p_boss:
                     dmg = 35 if "技能" in action else (45 if "强化" in action else 91)
                 else:
-                    is_crit = random.random() < 0.2
                     base_dmg = 15 if "普通" in action else (p_data['atk'] + 10)
                     dmg = base_dmg * 2 if is_crit else base_dmg
                 
+                # 更新状态
+                st.session_state.sp -= chosen_cost
                 st.session_state.o_hp = max(0, st.session_state.o_hp - dmg)
-                st.session_state.sp = min(st.session_state.max_sp, st.session_state.sp + 10) # 回合后回复
-                st.session_state.log.append(f"使用了 {action.split(':')[0]}，造成 {dmg} 点伤害。")
+                st.session_state.sp = min(st.session_state.max_sp, st.session_state.sp + 10)
+                
+                # 记录日志与嘲讽
+                crit_text = "【暴击！】" if is_crit else ""
+                taunt = random.choice(taunts)
+                st.session_state.log.append(f"{crit_text}使用了 {action.split(':')[0]}，造成 {dmg} 点伤害。对手反击：{taunt}")
                 
                 if st.session_state.o_hp <= 0:
                     st.session_state.log.append("🎉 对手当场暴毙！"); st.balloons()
