@@ -1,12 +1,6 @@
 import streamlit as st
 
-# 直接嵌入你的游戏HTML文件
-# 记得把 'game.html' 换成你游戏文件的实际名字
-with open("game.html", "r", encoding="utf-8") as f:
-    html_code = f.read()
 
-# 使用 st.html 直接渲染你的游戏
-st.html(html_code)
 <!DOCTYPE html>
 <html lang="zh">
 <head>
